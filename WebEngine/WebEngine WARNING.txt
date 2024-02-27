@@ -1,0 +1,7 @@
+Some Warnings to be clear of:
+
+> WebEngine may not work on all devices. It's just a prototype for now and still under development. On my device, it only works when loaded using Python IDLE.
+
+> Requires Python and IDLE. The .exe file had some issues so for now I've uploaded the Python script itself. I suggest you load it using IDLE because that greatly reduces the chances of errors.
+
+> Not perfect. This is a currently under development project and will sometimes cause errors. It doesn't support JavaScript yet and some advanced CSS such as gradient backgrounds. Am hoping to improve soon!
