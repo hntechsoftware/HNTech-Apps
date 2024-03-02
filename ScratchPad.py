@@ -14,27 +14,86 @@ from tkinter import messagebox
 import autocorrect
 from tkinter import font as tkfont
 from tkinter import simpledialog
+import os
+import sys
+from tkhtmlview import HTMLLabel
+import markdown
+import webbrowser
+import ctypes
+import ttkbootstrap as tb
+from ttkbootstrap.dialogs.dialogs import FontDialog
+from ttkbootstrap.toast import ToastNotification
+ctypes.windll.shcore.SetProcessDpiAwareness(3) 
+ 
 
 #Initialize scratchpadwindow
-scratchpadwindow = tk.Tk()
+scratchpadwindow = tb.Window(themename="cerculean")
 scratchpadwindow.title("ScratchPad")
-scratchpadwindow.geometry("400x400")
-scratchpadwindow['background']='#c7e5fc'
+scratchpadwindow.geometry("700x700")
+scratchpadwindow['background']='#FFFFFF'
 scratchpadwindow.resizable(True,True)
+
+scratchpadwindow.tk.call('tk', 'scaling', 2.5)
+ 
+photo = PhotoImage(file = "src/logo1.png")
+scratchpadwindow.iconphoto(False, photo)
 
 #init variables
 syntax_highlighting_enabled = False
 is_on = False
 
-#Define close
-def close():
-    scratchpadwindow.destroy()
+#Define markdown view
+def preview_markdown(markdown_text):
+    filecontent = markdown.markdown(markdown_text)
+    with open("temp/mdarchive.html","w") as mda:
+        mda.write(filecontent)
+    newwin = tk.Toplevel()
+    with open("temp/mdarchive.html","r") as lotr:
+        contents = lotr.read()
+    webframe = HTMLLabel(newwin, html=contents)
+    webframe.configure(width=250,height=450)
+    webframe.grid(row=1,column=0,sticky="NSEW")
+    toast = ToastNotification(
+        title="Markdown Preview",
+        message="Markdown Preview Window successfully loaded.",
+        duration=3000,
+    )
+    toast.show_toast()
+
+#Test Reigon
+def open_font():
+	# Define Font Dialog
+	fd = FontDialog()
+	# Show the box
+	fd.show()
+	# Capture The Reult fd.result and update label
+	usertext.config(font=fd.result)
+
+# Example usage: pass the markdown text from another Text widget
+def onyourmarks():
+    markdown_text = usertext.get(1.0,tk.END)
+    markdown_text = markdown_text.replace("→", ">")
+    preview_markdown(markdown_text)
+
+savearea = "temp/Notes.txt"
+
+def customoutputdir():
+    #Custom output dir for autosave
+    global savearea
+    outputdir = tk.filedialog.askdirectory()
+    savearea = outputdir + "/ScratchPad-Notes.txt"
+
+def arrow(event):
+    usertext.insert(tk.INSERT,"→")
+
+
 
 #Define Autosave
 def autosave(event=None):
     if is_on is True:
-        text_file = open("ScratchPad-Notes.txt", "w")
+        text_file = open(savearea, "w")
         filecontent = usertext.get(1.0,tk.END)
+        filecontent = filecontent.replace("→", ">")
         text_file.write(filecontent)
         text_file.close()
 #Define the open function
@@ -44,7 +103,7 @@ def open_file():
 
     filepath = askopenfilename(
 
-        filetypes=[("Text Files", "*.txt"), ("All Files", "*.*")]
+        filetypes=[("Text Files", "*.txt"),("Python Files", "*.py"), ("All Files", "*.*")]
 
     )
 
@@ -61,7 +120,12 @@ def open_file():
         usertext.insert(tk.END, text)
 
     scratchpadwindow.title(f"ScratchPad - {filepath}")
-
+    toast = ToastNotification(
+        title="File",
+        message="File has been opened in the Editor Window.",
+        duration=3000,
+    )
+    toast.show_toast()
 #Define save function
 def save_file():
 
@@ -71,7 +135,7 @@ def save_file():
 
         defaultextension=".txt",
 
-        filetypes=[("Text Files", "*.txt"),("Python File", "*.py"), ("All Files", "*.*")],
+        filetypes=[("Text File", "*.txt"),("Markdown file", "*.md"),("Rich Text File", "*.rtf"),("Python File", "*.py"), ("All Files", "*.*")],
 
     )
 
@@ -82,7 +146,7 @@ def save_file():
     with open(filepath, mode="w", encoding="utf-8") as output_file:
 
         text = usertext.get("1.0", tk.END)
-
+        text = text.replace("→", ">")
         output_file.write(text)
 
     scratchpadwindow.title(f"ScratchPad - {filepath}")
@@ -99,7 +163,7 @@ def closecode11():
     """Save the current file as a new file."""
     filepath = asksaveasfilename(
         defaultextension=".txt",
-        filetypes=[("Text Files", "*.txt"),("Python File", "*.py"), ("All Files", "*.*")],)
+        filetypes=[("Text File", "*.txt"),("Markdown file", "*.md"),("Rich Text File", "*.rtf"),("Python File", "*.py"), ("All Files", "*.*")],)
     if not filepath:
         return
     with open(filepath, mode="w", encoding="utf-8") as output_file:
@@ -113,7 +177,37 @@ def customize():
     usertext.configure(bg=colors[1])
     colors2 = askcolor(title="Change Text colour")
     usertext.config(foreground=colors2[1])
+#Define close
+def close():
+    closecode()
 
+    
+def quickrun():
+    qrunfile = open("temp/qruncodec.py","w")
+    qrunfile.write("import os")
+    qrunfile.close()
+    qrunfile = open("temp/qruncodec.py","a")
+    qrunfile.write("\n")
+    qruncode = usertext.get(1.0,tk.END)
+    qrunfile.write(qruncode)
+    qrunfile.close()
+    qrunfile = open("temp/qruncodec.py","a")
+    qrunfile.write("\n")
+    qrunfile.write("os.system('pause')")
+    qrunfile.close()
+    toast = ToastNotification(
+        title="Python Code Preview",
+        message="Python code executed for preview. (Note: It will not work if the file has dependencies.)",
+        duration=3000,
+    )
+    
+    result = os.system("python temp/qruncodec.py")
+    if result != 0:
+        messagebox.showerror("Error","A problem occured")
+    else:
+        messagebox.showinfo("Task Preview","Code ran sucessfully.")
+    toast.show_toast()
+        
 #define WordCount function
 def wordcount():
     text = usertext.get("1.0", "end")
@@ -122,6 +216,38 @@ def wordcount():
     num_lines = len(text.splitlines())
     messagebox.showinfo("Word Count", f"Total characters: {num_characters}\n Total words: {num_words}\n Total lines: {num_lines}")
 
+#Print function
+def print_file():
+   with open("temp/printarchive.txt",mode="w") as pr:
+       filecontent = usertext.get(1.0,tk.END)
+       pr.write(filecontent)
+       pr.close()
+   file = os.path.abspath("temp/printarchive.txt") 
+   if file:
+      if sys.platform == "win32":
+        import win32api
+        os.startfile(file, "print")
+      else:
+        import cups
+        import cupshelpers
+
+        # Create a new connection and the list of available printers
+        connection = cups.Connection()
+        printers = cupshelpers.getPrinters(connection)
+
+        # Select the first printer in the list...
+        for p in printers:
+            if p is not None:
+                printer = printers[p]
+                break
+
+        # ...and print to it
+        printer.connection.printFile(
+            p,
+            file,
+            "Test this printer",
+            {}
+        )
 
 #Define the .grid() sizes
 scratchpadwindow.columnconfigure(0, weight=1)
@@ -133,15 +259,21 @@ scratchpadwindow.config(menu=menubar)
 
 #Code for the CodeMode dropdowns
 langs = tk.Menu(menubar, tearoff=False)
-langs.add_command(label="Python (Toggle)",command=lambda: toggle_syntax_highlighting())
+langs.add_command(label="Toggle Python Syntax Highlight ",command=lambda: toggle_syntax_highlighting())
+langs.add_command(label="Execute Python Code",command=quickrun)
 
+optmenu = tk.Menu(menubar, tearoff=False)
+optmenu.add_command(label="Print File",command=print_file)
+optmenu.add_command(label="Word Count",command=wordcount)
+optmenu.add_command(label="Preview as Markdown",command= onyourmarks)
+optmenu.add_command(label="Change AutoSave Output Directory",command= customoutputdir)
 
 #Add menubar
 menubar.add_command(label="Open",command=open_file)
 menubar.add_command(label="Save",command=save_file)
 menubar.add_cascade(label="CodeMode", menu=langs)
 menubar.add_command(label="Customize",command=customize)
-menubar.add_command(label="Word Count",command=wordcount)
+menubar.add_cascade(label="Options",menu=optmenu)
 menubar.add_command(label="Close",command=close)
 
 #Create Sizegrip
@@ -153,6 +285,9 @@ usertext = tk.Text(undo=True,wrap="word")
 #textFont = ("Helvetica", 12)
 #usertext.config(font=textFont)
 usertext.grid(row=0, column=0, sticky="nsew",columnspan=3)
+
+#Bind Arrow function
+usertext.bind("<F9>", arrow)
 
 #Add Scrollbar
 sb = tk.Scrollbar(
@@ -196,7 +331,7 @@ slider.grid(row=2,column=0)
 slider.set(12)
 
 #Bind scratchpadwindowclose to savefunction
-scratchpadwindow.protocol("WM_DELETE_scratchpadwindow",closecode)
+scratchpadwindow.protocol("WM_DELETE_WINDOW",closecode)
 
 #CODE FOR FONT DEF FUNCTIONS
 
@@ -263,6 +398,7 @@ font.add_command(label='Courier New',command=Courier )
 font.add_command(label='Times New Roman',command=tnr )
 font.add_command(label='Calibri',command=calibri )
 font.add_command(label='Comic Sans MS',command=ael )
+font.add_command(label='Select Font...',command=open_font )
 font.add_command(label='Use Custom Font...',command=customfont )
 # Create a menubutton widget
 fontmenu = ttk.Menubutton(scratchpadwindow, menu=font, text='Adjust Font')
@@ -287,10 +423,12 @@ def switch():
     if is_on:
         on_button.config(text="Disabled")
         on_button.config(bg="#0044b3")
+        on_button.config(fg="#bad1ff")
         is_on = False
     else:
         on_button.config(text="Enabled")
         on_button.config(bg="#99c0ff")
+        on_button.config(fg="#002b80")
         is_on = True
 
 # Create A Button
